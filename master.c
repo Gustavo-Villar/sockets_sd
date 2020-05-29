@@ -1,72 +1,67 @@
-#include <unistd.h> 
 #include <stdio.h> 
+#include <math.h>
 #include <sys/socket.h> 
-#include <stdlib.h> 
-#include <netinet/in.h> 
+#include <arpa/inet.h> 
+#include <unistd.h> 
 #include <string.h> 
 
-#define PORT 8080 
-#define MAX_SLAVES 10
+#define masterPort 8080
 
-int main(int argc, char const *argv[]) 
-{ 
-    // Socket-Master variables
-    int server_fd, new_socket, valread; 
-    struct sockaddr_in address; 
-    int opt = 1; 
-    int addrlen = sizeof(address); 
-    char buffer[1024] = {0}; 
-    char *hello = "Hello from your master"; 
+int main(int argc, char const *argv[]) {  
 
-    // Integral variables and values
-    double finalValue = 0.0;
-    double gap = 0.0;
-    double descrization = 0.0001;
-    double aux = 0.0;
-       
-    // Creating socket file descriptor 
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
-    { 
-        perror("socket failed"); 
-        exit(EXIT_FAILURE); 
-    } 
-       
-    // Forcefully attaching socket to the port 8080 
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
-                                                  &opt, sizeof(opt))) 
-    { 
-        perror("setsockopt"); 
-        exit(EXIT_FAILURE); 
-    } 
+  // Mensagem enviado quando estabelece uma nova conexão
+  char helloMessage[256] = "Conexão estabelecida!";
 
-    address.sin_family = AF_INET; 
-    address.sin_addr.s_addr = INADDR_ANY; 
-    address.sin_port = htons( PORT ); 
-       
-    // Forcefully attaching socket to the port 8080 
-    if (bind(server_fd, (struct sockaddr *)&address,  
-                                 sizeof(address))<0) 
-    { 
-        perror("bind failed"); 
-        exit(EXIT_FAILURE); 
-    } 
-    while(finalValue != 100){  
-      if (listen(server_fd, 3) < 0) 
-      { 
-          perror("listen"); 
-          exit(EXIT_FAILURE); 
-      } 
+  // Usado para identificar conexões no socket
+  int conectionBacklog = 5;
 
-      if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0) 
-      { 
-          perror("accept"); 
-          exit(EXIT_FAILURE); 
-      } 
-        
-      valread = read( new_socket , buffer, 1024); 
-      printf("[MASTER] <- Datagrama recebido: %s\n",buffer ); 
-      send(new_socket , hello , strlen(hello) , 0 ); 
-      printf("[MASTER] -> Datagrama enviado: %s\n",hello); 
-    }
-    return 0; 
-} 
+  // Criação do sokcet
+  int serverSocket;
+  serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+
+  // Especificações do socket de conexão 
+  struct sockaddr_in serverAdress;
+  serverAdress.sin_family = AF_INET;
+  serverAdress.sin_port = htons(8080);        // Converte pra endereço de porta
+  serverAdress.sin_addr.s_addr = INADDR_ANY;  // INADDR_NAY = 0.0.0.0
+
+  // Bind(Conexão/Ligação) com um socket de IP e PORTA especifico 
+  // Similar aos parametros de conexão com do SLAVE para o MASTER
+  bind(serverSocket, (struct sockaddr *) &serverAdress, sizeof(serverAdress));
+
+  // Escuta conexãoes na rede
+  // @Param: 'struct' : Struct do socket utilizado
+  // @Param: 'int' : Backlog de numero de conexões
+  listen(serverSocket, conectionBacklog);
+
+  // Armazena a identificação do socket do Client(SLAVE)
+  int clientSocket; 
+
+  // Quando aceita uma nova conexão com o MASTER
+  // @Param: 'int' : Socket de conexão principal
+  // @Param: 'struct' : Armazena a informação de conexão do Client(SLAVE) em uma struct
+  // @Param: 'int' : Tamanho da estrutura declarada a cima
+  clientSocket = accept(serverSocket, NULL, NULL);
+
+  // Envia mensagem para o Client(SLAVE) conectado e aceito
+  // @Param: 'int' : Socket referente ao client em questão
+  // @Param: 'char*' : Mensagem a ser enviada
+  // @Param: 'int' : Tamanho da msg a ser enviada
+  // @Param: 'int' : Flag opcional
+  send(clientSocket, helloMessage, sizeof(helloMessage), 0);
+
+  // Armazena a mensagem do SLAVE
+  char slaveMessage[256];
+
+  //Recebendo dados do SLAVE
+  // @Param: 'int'   : Identificação do socket de comunicação
+  // @Param: 'char*' : Buffer de armazenamento de resposta
+  // @Param: 'int'   : Tamanho da msg de resposta
+  // @Param: 'int'   : Opcional
+  recv(clientSocket, &slaveMessage, sizeof(slaveMessage), 0);
+
+  // Finalização conexão do MASTER
+  close(serverSocket);
+  
+  return 0;
+}
