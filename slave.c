@@ -30,8 +30,15 @@ int main(int argc, char const *argv[]) {
     printf("Erro ao conectar com o socket do servidor MASTER \n");
   }
 
-  // Armazena a mensagem do MASTER
+  // Armazena a mensagem recebida MASTER
   char serverResponse[256];
+
+  // Armazena a mensagem de envio para o MASTER
+  char slaveMessage[256] = "Hello, i'm your SLAVE!";
+
+  // Envia mensagem para o Master
+  send(networkSocket, slaveMessage, sizeof(slaveMessage), 0);
+  printf("[SLAVE] -> Enviou: %s\n", slaveMessage);
 
   //Recebendo dados do MASTER após conexão
   // @Param: 'int'   : Identificação do socket de comunicação
@@ -41,7 +48,7 @@ int main(int argc, char const *argv[]) {
   recv(networkSocket, &serverResponse, sizeof(serverResponse), 0);
 
   // Envia a mensagem para o servidor como "resposta"
-  printf("[SLAVE] -> Enviou: %s\n", serverResponse);
+  printf("[SLAVE] <- Recebeu: %s\n", serverResponse);
 
 
   // Finzaliza a conexão

@@ -9,7 +9,7 @@
 
 int main(int argc, char const *argv[]) {  
 
-  // Mensagem enviado quando estabelece uma nova conexão
+  // Mensagem enviada quando estabelece uma nova conexão
   char helloMessage[256] = "Conexão estabelecida!";
 
   // Usado para identificar conexões no socket
@@ -20,45 +20,52 @@ int main(int argc, char const *argv[]) {
   serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
   // Especificações do socket de conexão 
-  struct sockaddr_in serverAdress;
-  serverAdress.sin_family = AF_INET;
-  serverAdress.sin_port = htons(8080);        // Converte pra endereço de porta
-  serverAdress.sin_addr.s_addr = INADDR_ANY;  // INADDR_NAY = 0.0.0.0
+  struct sockaddr_in serverAddress;
+  serverAddress.sin_family = AF_INET;
+  serverAddress.sin_port = htons(masterPort);  // Converte pra endereço de porta
+  serverAddress.sin_addr.s_addr = INADDR_ANY;  // INADDR_NAY = 0.0.0.0
 
   // Bind(Conexão/Ligação) com um socket de IP e PORTA especifico 
   // Similar aos parametros de conexão com do SLAVE para o MASTER
-  bind(serverSocket, (struct sockaddr *) &serverAdress, sizeof(serverAdress));
+  bind(serverSocket, (struct sockaddr *) &serverAddress, sizeof(serverAddress));
 
   // Escuta conexãoes na rede
   // @Param: 'struct' : Struct do socket utilizado
   // @Param: 'int' : Backlog de numero de conexões
   listen(serverSocket, conectionBacklog);
 
-  // Armazena a identificação do socket do Client(SLAVE)
-  int clientSocket; 
+  while(1){
 
-  // Quando aceita uma nova conexão com o MASTER
-  // @Param: 'int' : Socket de conexão principal
-  // @Param: 'struct' : Armazena a informação de conexão do Client(SLAVE) em uma struct
-  // @Param: 'int' : Tamanho da estrutura declarada a cima
-  clientSocket = accept(serverSocket, NULL, NULL);
+    // Armazena a identificação do socket do Client(SLAVE)
+    int clientSocket; 
 
-  // Envia mensagem para o Client(SLAVE) conectado e aceito
-  // @Param: 'int' : Socket referente ao client em questão
-  // @Param: 'char*' : Mensagem a ser enviada
-  // @Param: 'int' : Tamanho da msg a ser enviada
-  // @Param: 'int' : Flag opcional
-  send(clientSocket, helloMessage, sizeof(helloMessage), 0);
+    // Quando aceita uma nova conexão com o MASTER
+    // @Param: 'int' : Socket de conexão principal
+    // @Param: 'struct' : Armazena a informação de conexão do Client(SLAVE) em uma struct
+    // @Param: 'int' : Tamanho da estrutura declarada a cima
+    clientSocket = accept(serverSocket, NULL, NULL);
 
-  // Armazena a mensagem do SLAVE
-  char slaveMessage[256];
+    // Envia mensagem para o Client(SLAVE) conectado e aceito
+    // @Param: 'int' : Socket referente ao client em questão
+    // @Param: 'char*' : Mensagem a ser enviada
+    // @Param: 'int' : Tamanho da msg a ser enviada
+    // @Param: 'int' : Flag opcional
+    send(clientSocket, helloMessage, sizeof(helloMessage), 0);
+    printf("[MASTER] -> Enviou: %s para %d\n", helloMessage, clientSocket);
 
-  //Recebendo dados do SLAVE
-  // @Param: 'int'   : Identificação do socket de comunicação
-  // @Param: 'char*' : Buffer de armazenamento de resposta
-  // @Param: 'int'   : Tamanho da msg de resposta
-  // @Param: 'int'   : Opcional
-  recv(clientSocket, &slaveMessage, sizeof(slaveMessage), 0);
+    // Armazena a mensagem do SLAVE
+    char slaveMessage[256];
+
+    //Recebendo dados do SLAVE
+    // @Param: 'int'   : Identificação do socket de comunicação
+    // @Param: 'char*' : Buffer de armazenamento de resposta
+    // @Param: 'int'   : Tamanho da msg de resposta
+    // @Param: 'int'   : Opcional
+    recv(clientSocket, &slaveMessage, sizeof(slaveMessage), 0);
+
+    // Menssagem recebida do Slave
+    printf("[MASTER] <- Recebeu: %s de %d\n", slaveMessage, clientSocket);
+  }
 
   // Finalização conexão do MASTER
   close(serverSocket);
