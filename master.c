@@ -16,12 +16,20 @@
 
 // Estrutura do server global (MASTER) 
 struct sockaddr_in serverAddress;
+struct sockaddr_in slaveAddress;  
 int totalSlavesConnected = 0;
 int slavesArray[slavesLimit];
 int flag = 1;
 
 // Variaveis da Integral
 double discrization = 0.0001;
+double gap = 0.0;
+double total = 0.0;
+double slaveReturn = 0.0;
+
+// Buffer de Leitura / Escrita de dados
+char inputBuffer[64];
+char Buffer[64];
 
 // Verifica erros nos passos do Socket
 int check(int bool, const char *msg){
@@ -155,9 +163,9 @@ int main(int argc, char const *argv[]) {
 
   // Usado para identificar backlog de conexões no socket
   int conectionBacklog = 10;
+  int slaveSockets[slavesLimit];
 
   // Usado para armazenar todos os Sockets de Slaves
-  int slaveSockets[slavesLimit];
   initializeSlavesArray();
 
   // Inicia a configuração do socket principal (MASTER)
@@ -173,26 +181,23 @@ int main(int argc, char const *argv[]) {
 
   // Repetição infinita
   while(1){
+    puts("Começou o laço(while) de novo\n");
 
     // Inicialização do "set" atual
     FD_ZERO(&readySockets);
     FD_SET(masterSocket, &readySockets);
 
-    /* Fase Simples Funcional 
-    int clientSocket = acceptNewConnection(masterSocket);
-    reciveAndSendData(masterSocket, clientSocket);
-    */
-
     // Como select() é destrutivo, é necessario
     // atualizar o fd_set atualizar a cada loop
     for(int i = 0; i < slavesLimit; i++){
       int slaveSocket = slaveSockets[i];
-      if( slaveSockets > 0 ){
-        FD_SET(slaveSocket, &readySockets);
-      }
-      if(slaveSocket > lastSocket){
-        lastSocket = slaveSocket;
-      }
+
+      // Caso seja um sd válido, adiciona para a readySockets
+      if( slaveSocket > 0 ) FD_SET(slaveSocket, &readySockets);
+    
+      // Atualiza o maior numero de socket para usar no select()
+      if(slaveSocket > lastSocket) lastSocket = slaveSocket;
+      
     }
 
     // Select() :
@@ -205,8 +210,7 @@ int main(int argc, char const *argv[]) {
     check(selectFlag, "Erro de seleção de FD");
 
 
-    // Verificamos se este socket está "setado", assim
-    // saberemos que neste socket podemos fazer leitura
+    // Verifica um nova conexão com o masterSocket
     if(FD_ISSET(masterSocket, &readySockets)){
 
       // Neste caso, significa que existe uma nova conexão
@@ -215,9 +219,84 @@ int main(int argc, char const *argv[]) {
       if(clientSocket > lastSocket) { lastSocket = clientSocket; }
       addNewSlaveSocket(clientSocket);
 
-    }
+    } 
+    
+    // Neste caso, como não é uma nova conexão, se trata de 
+    // uma operação de I/O
+    for(int i = 0; i < slavesLimit; i++){
+      
+      puts("Começou o laço(for) de novo\n");
+      
+      memset(inputBuffer, 0x0, 64);
+      memset(Buffer, 0x0, 64);
 
-  }
+      int slaveSocket = slavesArray[i];
+
+      printf("Slave atual : %d\n", slaveSocket);
+
+      // Verificamos se este socket faz parte do "set"
+      if(FD_ISSET(slaveSocket, &readySockets)){
+        // Return : -1 = Error / 0 = EOF
+        int readFlag = read(slaveSocket, Buffer, 1024);
+        if( readFlag == 0) {
+          printf("Resultado: %f\n", total);
+          getpeername(
+            slaveSocket, 
+            (struct sockaddr*)&slaveAddress , 
+            (socklen_t*)&slaveAddress
+          );
+          printf(
+            "> Host %s:%d desconectado \n", 
+            inet_ntoa(slaveAddress.sin_addr), 
+            ntohs(slaveAddress.sin_port)
+          );  
+
+          close(slaveSocket);
+          slavesArray[i] = 0;
+
+        }
+
+        // Recebeu uma mensagem do Slave
+        else {
+
+          // Verificamos  se o intervalo é maior que 100, caso for, finaliza
+          if( gap + discrization >= 100 ){
+            strcpy(Buffer, "finalizado");
+            send(slaveSocket, Buffer, strlen(Buffer), 0);
+            printf("[MASTER] -> (%s) -> Slave[%d] \n", Buffer, slaveSocket);
+          }
+          
+          // Caso contrario, envia dados de calculo
+          else{
+            // Caso esteja pronto, envia o intervalo da integral
+            if(strcmp(Buffer, "pronto") == 0) {
+              printf("[MASTER] <- (%s) <- Slave[%d] \n", Buffer, slaveSocket);
+              sprintf(Buffer, "%lf", gap);
+              send(slaveSocket, Buffer, strlen(Buffer), 0);
+              printf("[MASTER] -> (%f) -> Slave[%d] \n", gap, slaveSocket);
+            }
+
+            // Caso contrario, o Slave finalizou o calculo
+            else {
+              printf("Slave terminou o calculo\n");
+              scanf(Buffer, "%lf", slaveReturn);
+              printf("[MASTER] <- (%f) <- Slave[%d] \n", slaveReturn, slaveSocket);
+              total = total + slaveReturn;
+              sprintf(Buffer, "%lf", gap);
+              send(slaveSocket, Buffer, strlen(Buffer), 0);
+              printf("[MASTER] -> (%f) -> Slave[%d] \n", gap, slaveSocket);
+            }
+
+            gap = gap + discrization;
+          }
+
+        } // Else recebimento de msg
+
+      } // If FD_ISSET
+
+    } // For
+
+  } // While
 
   // Finalização conexão do MASTER
   close(masterSocket);
