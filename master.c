@@ -177,26 +177,24 @@ int main(int argc, char const *argv[]) {
   int lastSocket = masterSocket;
 
   // Seleção dos descritores de arquivo (FD -> File Descriptor)
-  fd_set readySockets;
+  fd_set readSockets;
 
   // Repetição infinita
   while(1){
-    puts("Começou o laço(while) de novo\n");
 
     // Inicialização do "set" atual
-    FD_ZERO(&readySockets);
-    FD_SET(masterSocket, &readySockets);
+    FD_ZERO(&readSockets);
+    FD_SET(masterSocket, &readSockets);
 
     // Como select() é destrutivo, é necessario
     // atualizar o fd_set atualizar a cada loop
     for(int i = 0; i < slavesLimit; i++){
-      int slaveSocket = slaveSockets[i];
 
-      // Caso seja um sd válido, adiciona para a readySockets
-      if( slaveSocket > 0 ) FD_SET(slaveSocket, &readySockets);
+      // Caso seja um sd válido, adiciona para a readSockets
+      if(slavesArray[i] > 0 ) FD_SET(slavesArray[i], &readSockets);
     
       // Atualiza o maior numero de socket para usar no select()
-      if(slaveSocket > lastSocket) lastSocket = slaveSocket;
+      if(slavesArray[i] > lastSocket) lastSocket = slavesArray[i];
       
     }
 
@@ -206,36 +204,31 @@ int main(int argc, char const *argv[]) {
     // @Param(3): FDs que verifica escrita
     // @Param(2): Erros
     // @Param(5): Timeout
-    int selectFlag = select(lastSocket, &readySockets, NULL, NULL, NULL);
-    check(selectFlag, "Erro de seleção de FD");
-
+    
+    check(select(10, &readSockets, NULL, NULL, NULL), "Erro de seleção de FD");
 
     // Verifica um nova conexão com o masterSocket
-    if(FD_ISSET(masterSocket, &readySockets)){
+    if(FD_ISSET(masterSocket, &readSockets)){
 
       // Neste caso, significa que existe uma nova conexão
       int clientSocket = acceptNewConnection(masterSocket);
-      FD_SET(clientSocket, &readySockets);
+      FD_SET(clientSocket, &readSockets);
       if(clientSocket > lastSocket) { lastSocket = clientSocket; }
       addNewSlaveSocket(clientSocket);
 
     } 
-    
+
     // Neste caso, como não é uma nova conexão, se trata de 
     // uma operação de I/O
     for(int i = 0; i < slavesLimit; i++){
-      
-      puts("Começou o laço(for) de novo\n");
-      
+          
       memset(inputBuffer, 0x0, 64);
       memset(Buffer, 0x0, 64);
 
       int slaveSocket = slavesArray[i];
 
-      printf("Slave atual : %d\n", slaveSocket);
-
       // Verificamos se este socket faz parte do "set"
-      if(FD_ISSET(slaveSocket, &readySockets)){
+      if(FD_ISSET(slaveSocket, &readSockets)){
         // Return : -1 = Error / 0 = EOF
         int readFlag = read(slaveSocket, Buffer, 1024);
         if( readFlag == 0) {
@@ -251,14 +244,15 @@ int main(int argc, char const *argv[]) {
             ntohs(slaveAddress.sin_port)
           );  
 
+          
           close(slaveSocket);
           slavesArray[i] = 0;
 
         }
-
+        
         // Recebeu uma mensagem do Slave
         else {
-
+          
           // Verificamos  se o intervalo é maior que 100, caso for, finaliza
           if( gap + discrization >= 100 ){
             strcpy(Buffer, "finalizado");
@@ -268,6 +262,7 @@ int main(int argc, char const *argv[]) {
           
           // Caso contrario, envia dados de calculo
           else{
+
             // Caso esteja pronto, envia o intervalo da integral
             if(strcmp(Buffer, "pronto") == 0) {
               printf("[MASTER] <- (%s) <- Slave[%d] \n", Buffer, slaveSocket);
@@ -275,11 +270,10 @@ int main(int argc, char const *argv[]) {
               send(slaveSocket, Buffer, strlen(Buffer), 0);
               printf("[MASTER] -> (%f) -> Slave[%d] \n", gap, slaveSocket);
             }
-
+          
             // Caso contrario, o Slave finalizou o calculo
             else {
-              printf("Slave terminou o calculo\n");
-              scanf(Buffer, "%lf", slaveReturn);
+              sscanf(Buffer, "%lf", &slaveReturn);
               printf("[MASTER] <- (%f) <- Slave[%d] \n", slaveReturn, slaveSocket);
               total = total + slaveReturn;
               sprintf(Buffer, "%lf", gap);
