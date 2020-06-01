@@ -89,8 +89,12 @@ void handShake(int networkSocket){
 
   strcpy(slaveMessage, "pronto");
 
+  // Log
+  printf("> Conexão estabelecida com o Master.\n");
+
   // Envia mensagem para o Master
   send(networkSocket, slaveMessage, strlen(slaveMessage), 0);
+
 }
 
 // Função principal
@@ -120,7 +124,7 @@ int main(int argc, char const *argv[]) {
 
     // Caso o Master tenha finalizado a integral encerrra conexão
     if(strcmp(outputBuffer, "finalizado") == 0) {
-      printf("Quantidade de integrais efetuadas: %d", callTimes);
+      printf("Quantidade de integrais efetuadas: %d \n", callTimes);
       break;
     }
 
