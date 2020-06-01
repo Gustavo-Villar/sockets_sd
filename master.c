@@ -1,3 +1,8 @@
+// Alunos:
+// Gabriel Henrique da Silva Gava
+// Gustavo Henrique de Oliveira Villar
+// Vitoria Zanon
+
 #include <stdio.h>  
 #include <string.h>     
 #include <stdlib.h>  
