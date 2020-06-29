@@ -2,6 +2,11 @@ compile:
 	gcc master.c -o master
 	gcc slave.c -o slave -lm
 	
+slave1:
+	./master&
+	sleep 2
+	./slave
+	
 slave2:
 	./master&
 	sleep 2

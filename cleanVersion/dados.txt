@@ -1,0 +1,17 @@
+--> Discritization = 0.0001
+	* 1 Slave: 9.149800
+	* 2 Slaves: 8.400135 -> Melhoria de 8,92%
+	* 4 Slaves: 8.255985 -> Melhoria de 10,826267247%
+	* 10 Slaves: 8.120733 -> Melhoria de 12,672094994%
+	
+--> Discritization = 0.00001
+	* 1 Slave: 94.121712
+	* 2 Slaves: 83.838631 -> Melhoria de 12,265325516%
+	* 4 Slaves: 81.250122 -> Melhoria de 15,841933136%
+	* 10 Slaves: 81.038940 -> Melhoria de 16,143809383%
+	
+--> Discritization = 0.000001
+	* 1 Slave: 969.647400
+	* 2 Slaves: 860.124023 -> Melhoria de 12,73344007%
+	* 4 Slaves: 810.262207 -> Melhoria de 19,670816635%
+	* 10 Slaves: 780.264343 -> Melhoria de 24,271653408%

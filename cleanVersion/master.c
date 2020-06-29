@@ -3,11 +3,13 @@
 // Gustavo Henrique de Oliveira Villar
 // Vitoria Zanon
 
+
 #include <stdio.h>  
 #include <string.h>     
 #include <stdlib.h>  
 #include <errno.h>  
 #include <unistd.h>    
+#include <time.h>
 #include <arpa/inet.h>    
 #include <sys/types.h>  
 #include <sys/socket.h>  
@@ -161,8 +163,10 @@ void * reciveAndSendData(int serverSokcet, int clientSocket){
   
 }
 
-int main(int argc, char const *argv[]) {  
+float t1, t2;
 
+
+int main(int argc, char const *argv[]) {  
   // Usado para identificar backlog de conexões no socket
   int conectionBacklog = 10;
   int slaveSockets[slavesLimit];
@@ -180,6 +184,7 @@ int main(int argc, char const *argv[]) {
   // Seleção dos descritores de arquivo (FD -> File Descriptor)
   fd_set readSockets;
 
+  t1 = clock(); 
   // Repetição infinita
   while(1){
 
@@ -255,7 +260,11 @@ int main(int argc, char const *argv[]) {
         else {
           
           // Verificamos  se o intervalo é maior que 100, caso for, finaliza
-          if( gap + discrization >= 100 ){
+          if( gap + discrization >= 100 ) {
+            t2 = clock();
+            float time = (t2 - t1) / CLOCKS_PER_SEC;
+            printf("O tempo total levado foi de :");
+            printf("%f", time);
             strcpy(Buffer, "finalizado");
             send(slaveSocket, Buffer, strlen(Buffer), 0);
           }
@@ -289,7 +298,9 @@ int main(int argc, char const *argv[]) {
   } // While
 
   // Finalização conexão do MASTER
-  close(masterSocket);
-  
+  close(masterSocket);  
+
+
+
   return EXIT_SUCCESS;
 }
